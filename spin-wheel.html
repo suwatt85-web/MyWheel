@@ -1,0 +1,234 @@
+HTML
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กงล้อสุ่มของสะสม 81 รายการ</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #2c3e50;
+            margin: 0;
+            color: white;
+        }
+
+        .container {
+            position: relative;
+            text-align: center;
+        }
+
+        #wheel-wrapper {
+            position: relative;
+            width: 450px;
+            height: 450px;
+            margin-bottom: 30px;
+            border: 10px solid #ecf0f1;
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            transition: transform 5s cubic-bezier(0.1, 0, 0.2, 1);
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        #pointer {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #f1c40f;
+            z-index: 10;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+        }
+
+        .segment {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            box-sizing: border-box;
+        }
+
+        /* ปุ่มกด */
+        #spin-button {
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            box-shadow: 0 5px 0 #c0392b;
+            transition: all 0.1s;
+        }
+
+        #spin-button:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #c0392b;
+        }
+
+        #spin-button:disabled {
+            background-color: #7f8c8d;
+            box-shadow: 0 5px 0 #95a5a6;
+            cursor: not-allowed;
+        }
+
+        /* หน้าต่างแสดงผลลัพธ์ */
+        #popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            z-index: 100;
+            text-align: center;
+            color: #333;
+        }
+
+        #popup img {
+            max-width: 80vw;
+            max-height: 60vh;
+            border-radius: 10px;
+            border: 5px solid #ecf0f1;
+        }
+
+        #popup button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 90;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>กงล้อสุ่มของสะสม</h1>
+
+    <div class="container">
+        <div id="pointer"></div>
+        <div id="wheel-wrapper">
+            <div id="wheel"></div>
+        </div>
+        <button id="spin-button" onclick="spinWheel()">คลิกเพื่อสุ่ม!</button>
+    </div>
+
+    <div id="overlay" class="overlay"></div>
+    <div id="popup">
+        <h2 id="result-text">ภาพของคุณ เรื่องของคุณ:</h2>
+        <img id="result-image" src="" alt="สุ่ม">
+        <br>
+        <button onclick="closePopup()">ตกลง</button>
+    </div>
+
+    <script>
+        // --- ปรับแต่งตรงนี้ ---
+        const totalPhotos = 81; 
+        const photoExtension = ".JPG"; 
+        // -------------------
+
+        const wheel = document.getElementById('wheel');
+        const spinButton = document.getElementById('spin-button');
+        const popup = document.getElementById('popup');
+        const overlay = document.getElementById('overlay');
+        const resultImage = document.getElementById('result-image');
+        const anglePerSegment = 360 / totalPhotos;
+        let currentRotation = 0;
+
+        // สร้างสีสลับเพื่อให้มองเห็นช่องง่ายขึ้น
+        function createWheel() {
+            for (let i = 1; i <= totalPhotos; i++) {
+                const segment = document.createElement('div');
+                segment.className = 'segment';
+                const angle = (i - 1) * anglePerSegment;
+                
+                segment.style.transform = `rotate(${angle}deg) skewY(${90 - anglePerSegment}deg)`;
+                // สลับสีพื้นหลัง
+                segment.style.backgroundColor = i % 2 === 0 ? '#3498db' : '#2980b9';
+                
+                wheel.appendChild(segment);
+            }
+        }
+
+        createWheel();
+
+        function spinWheel() {
+    if (spinButton.disabled) return;
+    spinButton.disabled = true;
+    
+    // 1. ดึงค่าเวลาในระดับมิลลิวินาที ณ วินาทีที่คุณกดปุ่มพอดี
+    const now = new Date();
+    const ms = now.getMilliseconds(); // ค่าจะเป็น 0 - 999
+    
+    // 2. ใช้ค่า ms นี้มาเป็น "แรงส่ง" (Power) ในการหมุน
+    // ยิ่งจังหวะที่คุณกดต่างกันแม้เพียง 0.001 วินาที ผลลัพธ์ก็จะเปลี่ยนไป
+    const baseRounds = 5; // หมุนพื้นฐาน 5 รอบ
+    const extraDegrees = (ms / 1000) * 360; // แปลงเสี้ยววินาทีเป็นองศา (0-360)
+    
+    currentRotation += (360 * baseRounds) + extraDegrees;
+    
+    wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+    // แสดงผลหลังหมุนเสร็จ
+    setTimeout(() => {
+        showResult();
+    }, 5000);        }
+
+        function showResult() {
+            // คำนวณว่าตกที่เลขไหน
+            let stopAngle = currentRotation % 360;
+            let photoIndex = Math.floor((360 - stopAngle) / anglePerSegment) + 1;
+            
+            if (photoIndex > totalPhotos) photoIndex = 1;
+
+            // ดึงไฟล์ภาพ (1.JPG, 2.JPG, ...)
+            const filename = photoIndex + photoExtension;
+            
+            resultImage.src = filename;
+            popup.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function closePopup() {
+            popup.style.display = 'none';
+            overlay.style.display = 'none';
+            spinButton.disabled = false;
+        }
+    </script>
+
+</body>
+</html>
